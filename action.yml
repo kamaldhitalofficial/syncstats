@@ -1,0 +1,53 @@
+name: 'GitHub Stats Sync'
+description: 'Automatically sync your GitHub stats to your profile README'
+author: 'Kamal Dhital'
+branding:
+  icon: 'activity'
+  color: 'blue'
+
+inputs:
+  github_token:
+    description: 'GitHub token for API access'
+    required: true
+  sections:
+    description: 'Comma-separated list of sections to include (profile,languages,contributions,organizations)'
+    required: false
+    default: 'profile'
+  commit_message:
+    description: 'Commit message for README update'
+    required: false
+    default: 'Update GitHub stats'
+
+outputs:
+  updated:
+    description: 'Whether the README was updated'
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      shell: bash
+      run: |
+        pip install requests
+    
+    - name: Generate stats
+      shell: bash
+      env:
+        GITHUB_TOKEN: ${{ inputs.github_token }}
+        SECTIONS: ${{ inputs.sections }}
+      run: |
+        python ${{ github.action_path }}/generate_stats.py
+    
+    - name: Commit changes
+      shell: bash
+      run: |
+        git config --local user.email "github-actions[bot]@users.noreply.github.com"
+        git config --local user.name "github-actions[bot]"
+        git add README.md
+        git diff --staged --quiet || git commit -m "${{ inputs.commit_message }}"
+        git push
